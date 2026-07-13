@@ -40,9 +40,16 @@ class FilingSession(Base):
     filer_category: Mapped[FilerCategory | None] = mapped_column(
         Enum(FilerCategory, name="filer_category", native_enum=False, create_constraint=True), nullable=True
     )
+    # Bound once, lazily, the first time the questionnaire engine resolves a
+    # question for this session — pinned thereafter even if newer questionnaire
+    # versions are later published, so an in-progress session stays consistent.
+    questionnaire_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("questionnaire_versions.id", ondelete="RESTRICT"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
     user: Mapped["User"] = relationship(back_populates="filing_sessions")
+    questionnaire_version: Mapped["QuestionnaireVersion | None"] = relationship()
