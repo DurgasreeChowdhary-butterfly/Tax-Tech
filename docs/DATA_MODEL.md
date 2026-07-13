@@ -6,16 +6,21 @@ Proposed tables and relationships. No SQLAlchemy models yet — this is planning
 ## Identity & profile
 
 - `users` — auth identity.
-- `user_profiles` — personal details (name, PAN, DOB, contact) supporting the
-  questionnaire and eventual summary output.
-- `tax_profiles` — per user, per assessment year: residency status, filer category,
-  links to the relevant `filing_session`.
+- `user_profiles` — general personal details (name, DOB, contact) supporting the
+  questionnaire and eventual summary output. One per user.
+- `tax_profiles` — protected taxpayer identity (PAN). Stable per user, not
+  assessment-year-specific — a PAN doesn't change year to year, so it does not
+  belong on a per-AY record. One per user.
 
 ## Filing workflow
 
 - `filing_sessions` — one per user per assessment year attempt; holds current
-  status, complexity classification, and links everything else together. This is
-  the resumable unit referenced in the mobile requirements (server-side state).
+  status, complexity classification, **and assessment-year-specific tax context
+  (residency status, filer category)** — these can legitimately differ between
+  assessment years and belong with the per-AY workflow record, not with the
+  stable taxpayer identity in `tax_profiles`. Links everything else together.
+  This is the resumable unit referenced in the mobile requirements (server-side
+  state).
 - `filing_flags` — `REVIEW_REQUIRED` / `NOT_SUPPORTED` / other blocking markers
   raised by the Decision Engine or Supported Case Validator, tied to a
   `filing_session`.
