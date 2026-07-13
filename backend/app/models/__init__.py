@@ -1,3 +1,4 @@
+from app.models.filing_flag import FilingFlag
 from app.models.filing_session import FilingSession
 from app.models.question import Question
 from app.models.question_answer import QuestionAnswer
@@ -18,4 +19,5 @@ __all__ = [
     "QuestionOption",
     "QuestionRule",
     "QuestionAnswer",
+    "FilingFlag",
 ]

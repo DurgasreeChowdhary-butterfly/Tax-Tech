@@ -53,3 +53,4 @@ class FilingSession(Base):
 
     user: Mapped["User"] = relationship(back_populates="filing_sessions")
     questionnaire_version: Mapped["QuestionnaireVersion | None"] = relationship()
+    filing_flags: Mapped[list["FilingFlag"]] = relationship(back_populates="filing_session", cascade="all, delete-orphan")

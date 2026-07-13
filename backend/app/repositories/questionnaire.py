@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.engines.decision.lifecycle import validate_action_payload
 from app.engines.questionnaire.lifecycle import validate_draft, validate_publishable, validate_rule_target
 from app.models.enums import QuestionnaireVersionStatus, RuleAction, RuleConditionOperator
 from app.models.filing_session import FilingSession
@@ -76,6 +77,7 @@ def add_question_rule(
 ) -> QuestionRule:
     validate_draft(question.questionnaire_version)
     validate_rule_target(question, target_question)
+    validate_action_payload(question.id, action, action_payload)
     rule = QuestionRule(
         questionnaire_version_id=question.questionnaire_version_id,
         question_id=question.id,

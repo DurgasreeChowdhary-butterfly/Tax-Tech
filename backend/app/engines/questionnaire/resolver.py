@@ -1,8 +1,9 @@
 import uuid
 from dataclasses import dataclass, field
 
+from app.engines.decision.conditions import condition_matches
 from app.engines.questionnaire.errors import AmbiguousRoutingError
-from app.models.enums import RuleAction, RuleConditionOperator
+from app.models.enums import RuleAction
 from app.models.question import Question
 from app.models.question_answer import QuestionAnswer
 from app.models.question_rule import QuestionRule
@@ -27,18 +28,6 @@ class RoutingState:
         return [q for q in self.questions if q.id not in self.skip_targets]
 
 
-def _condition_matches(rule: QuestionRule, answer_value) -> bool:
-    if rule.condition_operator == RuleConditionOperator.ALWAYS:
-        return True
-    if rule.condition_operator == RuleConditionOperator.EQUALS:
-        return answer_value == rule.condition_value
-    if rule.condition_operator == RuleConditionOperator.NOT_EQUALS:
-        return answer_value != rule.condition_value
-    if rule.condition_operator == RuleConditionOperator.IN:
-        return isinstance(rule.condition_value, list) and answer_value in rule.condition_value
-    raise ValueError(f"unsupported condition operator {rule.condition_operator!r}")
-
-
 def compute_routing_state(
     questions: list[Question],
     rules_by_question_id: dict[uuid.UUID, list[QuestionRule]],
@@ -61,7 +50,7 @@ def compute_routing_state(
         if answer is None:
             continue
 
-        matched = [r for r in rules_by_question_id.get(question.id, []) if _condition_matches(r, answer.value)]
+        matched = [r for r in rules_by_question_id.get(question.id, []) if condition_matches(r, answer.value)]
         if not matched:
             continue
         matched.sort(key=lambda r: r.priority)
