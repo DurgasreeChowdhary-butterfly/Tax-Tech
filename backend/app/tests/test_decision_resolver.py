@@ -128,3 +128,40 @@ def test_known_flags_include_unsupported_ones():
     state = compute_decision_state([q1], rules, {q1.id: _answer(q1.id, False)})
     assert state.active_flags == set()
     assert state.known_flags == {"FREELANCE_INCOME_DETECTED"}
+
+
+def test_require_review_alone_floors_complexity_to_review_required():
+    """Regression: a REQUIRE_REVIEW match with no companion SET_COMPLEXITY
+    rule must still elevate effective complexity, or a consumer that only
+    checks filing_session.complexity could miss that review is required."""
+    q1 = _question(1)
+    rules = {q1.id: [_rule(q1.id, RuleAction.REQUIRE_REVIEW)]}  # no SET_COMPLEXITY rule at all
+
+    state = compute_decision_state([q1], rules, {q1.id: _answer(q1.id, True)})
+    assert state.active_flags == {"REVIEW_REQUIRED"}
+    assert state.complexity == "REVIEW_REQUIRED"
+
+
+def test_require_review_does_not_downgrade_more_severe_complexity():
+    q1, q2 = _question(1), _question(2)
+    rules = {
+        q1.id: [_rule(q1.id, RuleAction.REQUIRE_REVIEW)],
+        q2.id: [_rule(q2.id, RuleAction.SET_COMPLEXITY, payload={"complexity": "NOT_SUPPORTED"})],
+    }
+    answers = {q1.id: _answer(q1.id, True), q2.id: _answer(q2.id, True)}
+
+    state = compute_decision_state([q1, q2], rules, answers)
+    assert state.complexity == "NOT_SUPPORTED"  # more severe than REVIEW_REQUIRED, not downgraded
+    assert state.active_flags == {"REVIEW_REQUIRED"}
+
+
+def test_require_review_removed_lets_complexity_revert():
+    q1 = _question(1)
+    rules = {q1.id: [_rule(q1.id, RuleAction.REQUIRE_REVIEW)]}
+
+    active = compute_decision_state([q1], rules, {q1.id: _answer(q1.id, True)})
+    assert active.complexity == "REVIEW_REQUIRED"
+
+    inactive = compute_decision_state([q1], rules, {q1.id: _answer(q1.id, False)})
+    assert inactive.complexity is None
+    assert inactive.active_flags == set()

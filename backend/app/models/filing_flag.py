@@ -10,10 +10,18 @@ from app.core.database import Base
 
 class FilingFlag(Base):
     """A named decision fact tied to a filing session (e.g. REVIEW_REQUIRED,
-    FREELANCE_INCOME_DETECTED). Reflects CURRENT effective state, reconciled by
-    the Decision Engine from current answers — not an append-only log. One row
-    per (filing_session, flag_code); reconciliation flips `is_active` on the
-    same row rather than creating duplicates.
+    FREELANCE_INCOME_DETECTED). Reflects CURRENT effective state only.
+
+    This is NOT a transition log: `updated_at` records only the most recent
+    flip, so an inactive -> active -> inactive -> active sequence collapses to
+    "currently active, last changed at <t3>" — intermediate transitions are
+    not retrievable from this row. That is intentional, not an oversight: the
+    full history is not lost, because every transition is a deterministic
+    function of the (already immutable, append-only) `question_answers`
+    history and the (already immutable-once-published) `question_rules` — it
+    is reconstructible by replaying the decision engine over historical answer
+    states. An explicit, queryable event-level record of each transition is
+    `audit_logs`' job (Phase 10 — see docs/DATA_MODEL.md), not this table's.
     """
 
     __tablename__ = "filing_flags"

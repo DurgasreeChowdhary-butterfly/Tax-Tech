@@ -3,12 +3,25 @@ from dataclasses import dataclass, field
 
 from app.engines.decision.conditions import condition_matches
 from app.engines.decision.errors import ContradictoryDecisionError
-from app.models.enums import RuleAction
+from app.models.enums import FilingComplexity, RuleAction
 from app.models.question import Question
 from app.models.question_answer import QuestionAnswer
 from app.models.question_rule import QuestionRule
 
 REVIEW_REQUIRED_FLAG = "REVIEW_REQUIRED"
+
+# Severity order for reconciling REQUIRE_REVIEW against SET_COMPLEXITY: a
+# REQUIRE_REVIEW match must never leave complexity looking less severe than
+# REVIEW_REQUIRED, or a consumer that only checks filing_session.complexity
+# (the obvious, most-likely-checked field) could silently miss that review is
+# required. NOT_SUPPORTED, being more severe, is never downgraded by this floor.
+_COMPLEXITY_SEVERITY = {
+    None: 0,
+    FilingComplexity.UNDETERMINED.value: 0,
+    FilingComplexity.SIMPLE.value: 1,
+    FilingComplexity.REVIEW_REQUIRED.value: 2,
+    FilingComplexity.NOT_SUPPORTED.value: 3,
+}
 
 
 @dataclass
@@ -57,6 +70,13 @@ def compute_decision_state(
 
     complexity = _resolve_complexity(complexity_rules)
     active_flags = set(flags_with_support.keys())
+
+    if REVIEW_REQUIRED_FLAG in active_flags and _COMPLEXITY_SEVERITY[complexity] < _COMPLEXITY_SEVERITY[FilingComplexity.REVIEW_REQUIRED.value]:
+        # A currently-active REQUIRE_REVIEW (or an explicit SET_PROFILE_FLAG
+        # named REVIEW_REQUIRED) must never be silently invisible to a
+        # consumer that only inspects complexity — it can only be overridden
+        # by a MORE severe explicit SET_COMPLEXITY (e.g. NOT_SUPPORTED).
+        complexity = FilingComplexity.REVIEW_REQUIRED.value
 
     return DecisionState(complexity=complexity, active_flags=active_flags, known_flags=known_flags)
 

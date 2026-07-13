@@ -47,6 +47,48 @@ def test_review_required_behaviour(db_session, decision_fixture):
     assert "REVIEW_REQUIRED" in _active_codes(db_session, session.id)
 
 
+def test_review_required_is_unambiguous_via_complexity_alone(db_session, decision_fixture):
+    """Regression: has_other_review_trigger has ONLY a REQUIRE_REVIEW rule, no
+    SET_COMPLEXITY rule. A gate that checks only filing_session.complexity
+    (not filing_flags) must still be able to see that review is required."""
+    _version, questions = decision_fixture
+    session = _make_session(db_session, "unambiguous-review@example.com")
+
+    questionnaire_service.submit_answer(db_session, session.id, questions["has_other_review_trigger"].id, True)
+
+    assert "REVIEW_REQUIRED" in _active_codes(db_session, session.id)
+    db_session.refresh(session)
+    assert session.complexity == FilingComplexity.REVIEW_REQUIRED  # not UNDETERMINED
+
+    # Removing that sole support reverts complexity too — no stale severity left behind.
+    questionnaire_service.submit_answer(db_session, session.id, questions["has_other_review_trigger"].id, False)
+    db_session.refresh(session)
+    assert session.complexity == FilingComplexity.UNDETERMINED
+    assert "REVIEW_REQUIRED" not in _active_codes(db_session, session.id)
+
+
+def test_repeated_reactivation_keeps_single_row_with_correct_current_state(db_session, decision_fixture):
+    """inactive -> active -> inactive -> active: the flag row's current state
+    must be correct after each transition, and no duplicate rows are ever
+    created (the effective-state table is not a transition log — see
+    FilingFlag's docstring — but its CURRENT state must always be right)."""
+    _version, questions = decision_fixture
+    session = _make_session(db_session, "reactivation@example.com")
+    q1 = questions["has_freelance_income"]
+
+    questionnaire_service.submit_answer(db_session, session.id, q1.id, True)  # -> active
+    questionnaire_service.submit_answer(db_session, session.id, q1.id, False)  # -> inactive
+    questionnaire_service.submit_answer(db_session, session.id, q1.id, True)  # -> active again
+    questionnaire_service.submit_answer(db_session, session.id, q1.id, False)  # -> inactive again
+    questionnaire_service.submit_answer(db_session, session.id, q1.id, True)  # -> active a third time
+
+    all_rows = filing_flag_repo.get_all_flags_for_session(db_session, session.id)
+    freelance_rows = [f for f in all_rows if f.flag_code == "FREELANCE_INCOME_DETECTED"]
+    assert len(freelance_rows) == 1  # one row throughout, never duplicated
+    assert freelance_rows[0].is_active is True
+    assert "FREELANCE_INCOME_DETECTED" in _active_codes(db_session, session.id)
+
+
 def test_idempotent_retry_creates_no_duplicate_effects(db_session, decision_fixture):
     _version, questions = decision_fixture
     session = _make_session(db_session, "idempotent-decision@example.com")

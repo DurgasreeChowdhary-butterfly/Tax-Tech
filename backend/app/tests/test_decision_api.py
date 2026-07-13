@@ -78,6 +78,25 @@ def test_shared_support_via_api(client, decision_fixture, filing_session_id):
     assert flags["REVIEW_REQUIRED"] is False
 
 
+def test_review_required_reflected_in_complexity_via_api(client, decision_fixture, filing_session_id):
+    """Regression: has_other_review_trigger has only a REQUIRE_REVIEW rule (no
+    SET_COMPLEXITY rule of its own). A caller reading only `complexity` from
+    the decision-state response must still see REVIEW_REQUIRED, not
+    UNDETERMINED, once that flag is active."""
+    _version, questions = decision_fixture
+    q_base = f"/api/v1/filing-sessions/{filing_session_id}/questionnaire"
+    d_base = f"/api/v1/filing-sessions/{filing_session_id}/decision-state"
+
+    client.post(
+        f"{q_base}/answers", json={"question_id": str(questions["has_other_review_trigger"].id), "value": True}
+    )
+
+    state = client.get(d_base).json()
+    assert state["complexity"] == "REVIEW_REQUIRED"
+    flags = {f["flag_code"]: f["is_active"] for f in state["flags"]}
+    assert flags["REVIEW_REQUIRED"] is True
+
+
 def test_end_flow_via_api(client, decision_fixture, filing_session_id):
     q_base = f"/api/v1/filing-sessions/{filing_session_id}/questionnaire"
     _version, questions = decision_fixture

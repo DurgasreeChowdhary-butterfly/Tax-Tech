@@ -23,7 +23,11 @@ Proposed tables and relationships. No SQLAlchemy models yet — this is planning
   state).
 - `filing_flags` — `REVIEW_REQUIRED` / `NOT_SUPPORTED` / other blocking markers
   raised by the Decision Engine or Supported Case Validator, tied to a
-  `filing_session`.
+  `filing_session`. Current-state only (one row per flag code, reconciled in
+  place) — not a transition log. Explicit per-transition history is `audit_logs`'
+  job (Phase 10); until then, history remains reconstructible by replaying rule
+  evaluation over the immutable `question_answers` trail, just not queryable
+  as discrete events.
 
 ## Questionnaire (versioned, immutable once published)
 
