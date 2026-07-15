@@ -76,6 +76,7 @@ Versioned consent management
 Secure document boundaries
 Server-side validation
 Protected taxpayer identity model
+
 🏗 Architecture
                         User
                           │
@@ -126,6 +127,8 @@ Modular Monolith
 Repository Pattern
 Service Layer
 Versioned Rule Engine
+
+
 📂 Project Structure
 taxease-ai/
 
