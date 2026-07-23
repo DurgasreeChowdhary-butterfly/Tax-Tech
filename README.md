@@ -34,10 +34,16 @@ fails to start, crashes later, or if ports 8000/5173 are already in use.
 [dev] Everything is running.
 [dev]   Backend:  http://127.0.0.1:8000/docs
 [dev]   Frontend: http://127.0.0.1:5173/
+[dev]   (use this exact 127.0.0.1 address -- 'localhost' can resolve to a
+[dev]    different, unlisted address on some machines and refuse to connect)
 [dev]   Demo login: demo@example.com / DemoPassword123!
 [dev] Press Ctrl+C to stop both.
 [dev] ================================================================
 ```
+
+It also opens `http://127.0.0.1:5173/` in your default browser automatically
+once both are confirmed healthy (best-effort — if no browser is available,
+e.g. in a headless/CI environment, it just logs that and carries on).
 
 If `DATABASE_URL` isn't already set in your environment, it defaults to a
 local sqlite file (`backend/var/dev.db`) and seeds the demo user below
@@ -78,6 +84,16 @@ no registration UI in the frontend yet; `POST /api/v1/auth/register` is
 available directly if you need a second account.
 
 ## Troubleshooting
+
+**`http://localhost:5173` (or `:8000`) shows `ERR_CONNECTION_REFUSED`, but
+`scripts/dev.py` says everything is healthy.** Both servers bind to the
+literal address `127.0.0.1`, not the hostname `localhost` — on some
+machines/browsers `localhost` resolves to a different address (its IPv6
+loopback, `::1`) that nothing is listening on, so the connection is refused
+even though the app is genuinely running. Use the exact `127.0.0.1` URLs
+`scripts/dev.py` prints (it also opens one for you automatically) instead of
+typing `localhost` yourself. Verify with `netstat -ano | findstr :5173` —
+if it shows `127.0.0.1:5173 LISTENING`, the app is up and this is the cause.
 
 **Login shows `Request failed with status 502`.** The Vite dev proxy
 (`frontend/vite.config.ts`, `/api` → `http://localhost:8000` by default)

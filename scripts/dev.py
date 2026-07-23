@@ -26,6 +26,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import webbrowser
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -210,11 +211,25 @@ def print_ready_banner(using_default_db: bool) -> None:
     log("dev", "Everything is running.")
     log("dev", f"  Backend:  {BACKEND_HEALTH_URL}")
     log("dev", f"  Frontend: http://{FRONTEND_HOST}:{FRONTEND_PORT}/")
+    log("dev", "  (use this exact 127.0.0.1 address -- 'localhost' can resolve to a")
+    log("dev", "   different, unlisted address on some machines and refuse to connect)")
     if using_default_db:
         log("dev", f"  Demo login: {DEMO_EMAIL} / {DEMO_PASSWORD}")
     log("dev", "Press Ctrl+C to stop both.")
     log("dev", "=" * 64)
     print(flush=True)
+
+
+def open_browser() -> None:
+    """Best-effort only -- a browser failing to launch (headless CI, no
+    default browser configured, sandboxed environment) must never take the
+    running app down with it."""
+    url = f"http://{FRONTEND_HOST}:{FRONTEND_PORT}/"
+    try:
+        opened = webbrowser.open(url)
+        log("dev", f"Opened {url} in your browser." if opened else f"Could not auto-open a browser -- open {url} yourself.")
+    except Exception:
+        log("dev", f"Could not auto-open a browser -- open {url} yourself.")
 
 
 def install_signal_handlers() -> None:
@@ -277,6 +292,7 @@ def main() -> int:
         log("dev", "Frontend is healthy.")
 
         print_ready_banner(using_default_db)
+        open_browser()
 
         while True:
             time.sleep(0.5)
