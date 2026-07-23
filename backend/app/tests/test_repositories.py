@@ -10,7 +10,7 @@ from app.schemas.user_profile import UserProfileCreate, UserProfileUpdate
 
 
 def test_user_repository_create_read_update(db_session):
-    user = create_user(db_session, UserCreate(email="taxpayer@example.com"))
+    user = create_user(db_session, UserCreate(email="taxpayer@example.com", password="TestPassword123!"))
 
     fetched = get_user(db_session, user.id)
     assert fetched is not None
@@ -21,7 +21,7 @@ def test_user_repository_create_read_update(db_session):
 
 
 def test_user_profile_repository_create_read_update(db_session):
-    user = create_user(db_session, UserCreate(email="taxpayer2@example.com"))
+    user = create_user(db_session, UserCreate(email="taxpayer2@example.com", password="TestPassword123!"))
 
     profile = create_user_profile(db_session, UserProfileCreate(user_id=user.id, full_name="Priya Singh"))
 
@@ -34,7 +34,7 @@ def test_user_profile_repository_create_read_update(db_session):
 
 
 def test_tax_profile_repository_create_read_update(db_session):
-    user = create_user(db_session, UserCreate(email="taxpayer3@example.com"))
+    user = create_user(db_session, UserCreate(email="taxpayer3@example.com", password="TestPassword123!"))
 
     profile = create_tax_profile(db_session, TaxProfileCreate(user_id=user.id))
 
@@ -47,7 +47,7 @@ def test_tax_profile_repository_create_read_update(db_session):
 
 
 def test_filing_session_repository_create_read_update(db_session):
-    user = create_user(db_session, UserCreate(email="taxpayer4@example.com"))
+    user = create_user(db_session, UserCreate(email="taxpayer4@example.com", password="TestPassword123!"))
 
     session = create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
 

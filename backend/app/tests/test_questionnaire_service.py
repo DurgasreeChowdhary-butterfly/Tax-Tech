@@ -11,7 +11,7 @@ from app.services import questionnaire as service
 
 
 def _make_session(db_session, email):
-    user = create_user(db_session, UserCreate(email=email))
+    user = create_user(db_session, UserCreate(email=email, password="TestPassword123!"))
     return create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
 
 

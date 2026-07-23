@@ -12,7 +12,9 @@ from app.models.user_profile import UserProfile
 
 
 def _make_user(db_session, email: str = "user@example.com") -> User:
-    user = User(email=email)
+    from app.core.security import hash_password
+
+    user = User(email=email, hashed_password=hash_password("TestPassword123!"))
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)

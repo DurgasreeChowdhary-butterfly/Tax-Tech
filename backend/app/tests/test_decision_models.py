@@ -9,7 +9,7 @@ from app.schemas.user import UserCreate
 
 
 def test_filing_flag_unique_per_session_and_code(db_session):
-    user = create_user(db_session, UserCreate(email="flags@example.com"))
+    user = create_user(db_session, UserCreate(email="flags@example.com", password="TestPassword123!"))
     session = create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
 
     db_session.add(FilingFlag(filing_session_id=session.id, flag_code="REVIEW_REQUIRED"))
@@ -22,7 +22,7 @@ def test_filing_flag_unique_per_session_and_code(db_session):
 
 
 def test_deleting_filing_session_cascades_to_flags(db_session):
-    user = create_user(db_session, UserCreate(email="flagscascade@example.com"))
+    user = create_user(db_session, UserCreate(email="flagscascade@example.com", password="TestPassword123!"))
     session = create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
 
     db_session.add(FilingFlag(filing_session_id=session.id, flag_code="REVIEW_REQUIRED"))

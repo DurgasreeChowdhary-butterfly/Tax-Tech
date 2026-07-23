@@ -1,30 +1,17 @@
 import pytest
-from fastapi.testclient import TestClient
 
-from app.core.database import get_db
-from app.main import app
 from app.repositories.filing_session import create_filing_session
 from app.repositories.user import create_user
 from app.schemas.filing_session import FilingSessionCreate
 from app.schemas.user import UserCreate
+from app.tests.conftest import auth_headers
 
 
 @pytest.fixture()
-def client(db_session):
-    def _override_get_db():
-        yield db_session
-
-    app.dependency_overrides[get_db] = _override_get_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
-
-
-@pytest.fixture()
-def filing_session_id(db_session):
-    user = create_user(db_session, UserCreate(email="api@example.com"))
+def filing_session_id(db_session, client):
+    user = create_user(db_session, UserCreate(email="api@example.com", password="TestPassword123!"))
     session = create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
+    client.headers.update(auth_headers(user.id))
     return session.id
 
 
@@ -90,8 +77,9 @@ def test_invalid_answer_returns_400(client, questionnaire_fixture, filing_sessio
     assert response.status_code == 400
 
 
-def test_unknown_filing_session_returns_404(client, questionnaire_fixture):
+def test_unknown_filing_session_returns_404(client, questionnaire_fixture, filing_session_id):
     import uuid
 
+    # filing_session_id fixture only run for its side effect of authenticating `client`.
     response = client.get(f"/api/v1/filing-sessions/{uuid.uuid4()}/questionnaire/current")
     assert response.status_code == 404

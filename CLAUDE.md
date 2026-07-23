@@ -51,6 +51,10 @@ full scope. **V1 is not direct ITR filing.**
 
 ## Current status
 
-Phase 0 (documentation/planning) complete. No application code, dependencies, or
-frameworks have been initialized yet. See `docs/IMPLEMENTATION_PLAN.md` for what
-Phase 1 entails.
+Phases 0-13 complete (backend: identity/session, questionnaire + decision engines,
+documents, async extraction, verification, tax rule sets + Supported Case
+Validator, deterministic tax calculation engine, consent + audit, JWT auth;
+frontend: mobile-first React shell, questionnaire runner, extraction review UI,
+regime comparison, tax summary). See `docs/IMPLEMENTATION_PLAN.md` for what each
+phase covered and what Phase 14+ (not yet scoped) would need to define first.
+See the top-level `README.md` for how to run the app locally and demo credentials.

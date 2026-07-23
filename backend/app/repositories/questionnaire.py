@@ -5,9 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit import service as audit_service
 from app.engines.decision.lifecycle import validate_action_payload
 from app.engines.questionnaire.lifecycle import validate_draft, validate_publishable, validate_rule_target
-from app.models.enums import QuestionnaireVersionStatus, RuleAction, RuleConditionOperator
+from app.models.enums import ActorType, AuditEventCode, QuestionnaireVersionStatus, RuleAction, RuleConditionOperator
 from app.models.filing_session import FilingSession
 from app.models.question import Question
 from app.models.question_answer import QuestionAnswer
@@ -174,6 +175,8 @@ def record_answer(
     question_id: uuid.UUID,
     questionnaire_version_id: uuid.UUID,
     value,
+    actor_user_id: uuid.UUID,
+    question_code: str,
 ) -> QuestionAnswer:
     """Create a new current answer version, idempotently.
 
@@ -183,6 +186,13 @@ def record_answer(
     the same transaction. A concurrent duplicate submission that races past the
     idempotency check is caught by the partial unique index and reconciled here
     rather than surfaced as a spurious error.
+
+    A QUESTION_ANSWER_CREATED (no prior current answer) or
+    QUESTION_ANSWER_CHANGED (a prior current answer existed) audit event is
+    staged in the same transaction as the write — never on the idempotent
+    no-op path. `question_code` (the question's stable `key`, not its
+    free-text prompt) is the only question-identifying audit metadata; the
+    submitted `value` itself is never included (data minimization).
     """
     current = get_current_answer(db, filing_session_id, question_id)
     if current is not None and current.value == value:
@@ -199,6 +209,18 @@ def record_answer(
     if current is not None:
         current.is_current = False
     db.add(new_answer)
+    db.flush()
+
+    audit_service.stage_event(
+        db,
+        event_code=AuditEventCode.QUESTION_ANSWER_CHANGED if current is not None else AuditEventCode.QUESTION_ANSWER_CREATED,
+        actor_type=ActorType.USER,
+        actor_user_id=actor_user_id,
+        filing_session_id=filing_session_id,
+        subject_type="question_answer",
+        subject_id=new_answer.id,
+        metadata={"question_code": question_code},
+    )
 
     try:
         db.commit()

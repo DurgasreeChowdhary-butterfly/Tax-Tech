@@ -1,15 +1,14 @@
 from app.models.enums import FilingComplexity
 from app.repositories import filing_flag as filing_flag_repo
-from app.repositories.filing_session import create_filing_session, get_filing_session
+from app.repositories.filing_session import create_filing_session
 from app.repositories.user import create_user
 from app.schemas.filing_session import FilingSessionCreate
 from app.schemas.user import UserCreate
-from app.services import decision as decision_service
 from app.services import questionnaire as questionnaire_service
 
 
 def _make_session(db_session, email):
-    user = create_user(db_session, UserCreate(email=email))
+    user = create_user(db_session, UserCreate(email=email, password="TestPassword123!"))
     return create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
 
 
@@ -230,7 +229,7 @@ def test_cross_questionnaire_safety(db_session, decision_fixture):
     )
     repo.publish_questionnaire_version(db_session, version_b)
     session_b = create_filing_session(
-        db_session, FilingSessionCreate(user_id=create_user(db_session, UserCreate(email="crossb@example.com")).id, assessment_year="2027-28")
+        db_session, FilingSessionCreate(user_id=create_user(db_session, UserCreate(email="crossb@example.com", password="TestPassword123!")).id, assessment_year="2027-28")
     )
 
     questionnaire_service.submit_answer(db_session, session_a.id, questions_a["has_freelance_income"].id, True)

@@ -66,15 +66,27 @@ def test_answer_history_is_immutable_append_only(db_session, questionnaire_fixtu
     from app.schemas.user import UserCreate
 
     version, questions = questionnaire_fixture
-    user = create_user(db_session, UserCreate(email="history@example.com"))
+    user = create_user(db_session, UserCreate(email="history@example.com", password="TestPassword123!"))
     session = create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
 
     q1 = questions["has_other_income"]
     first = repo.record_answer(
-        db_session, filing_session_id=session.id, question_id=q1.id, questionnaire_version_id=version.id, value=True
+        db_session,
+        filing_session_id=session.id,
+        question_id=q1.id,
+        questionnaire_version_id=version.id,
+        value=True,
+        actor_user_id=user.id,
+        question_code=q1.key,
     )
     second = repo.record_answer(
-        db_session, filing_session_id=session.id, question_id=q1.id, questionnaire_version_id=version.id, value=False
+        db_session,
+        filing_session_id=session.id,
+        question_id=q1.id,
+        questionnaire_version_id=version.id,
+        value=False,
+        actor_user_id=user.id,
+        question_code=q1.key,
     )
 
     history = repo.get_answer_history(db_session, session.id, q1.id)
@@ -95,12 +107,18 @@ def test_exactly_one_current_answer_enforced_at_db_level(db_session, questionnai
     from app.schemas.user import UserCreate
 
     version, questions = questionnaire_fixture
-    user = create_user(db_session, UserCreate(email="dbinvariant@example.com"))
+    user = create_user(db_session, UserCreate(email="dbinvariant@example.com", password="TestPassword123!"))
     session = create_filing_session(db_session, FilingSessionCreate(user_id=user.id, assessment_year="2026-27"))
     q1 = questions["has_other_income"]
 
     repo.record_answer(
-        db_session, filing_session_id=session.id, question_id=q1.id, questionnaire_version_id=version.id, value=True
+        db_session,
+        filing_session_id=session.id,
+        question_id=q1.id,
+        questionnaire_version_id=version.id,
+        value=True,
+        actor_user_id=user.id,
+        question_code=q1.key,
     )
 
     # Bypass the service/repository idempotency guard entirely and attempt to

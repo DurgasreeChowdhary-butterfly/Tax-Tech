@@ -75,6 +75,8 @@ def submit_answer(db: Session, filing_session_id: uuid.UUID, question_id: uuid.U
         question_id=question.id,
         questionnaire_version_id=version.id,
         value=value,
+        actor_user_id=filing_session.user_id,
+        question_code=question.key,
     )
 
     # Reconcile decision state (flags/complexity) against the now-current
