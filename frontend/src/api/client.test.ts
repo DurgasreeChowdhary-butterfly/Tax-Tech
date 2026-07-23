@@ -132,4 +132,16 @@ describe('apiRequest', () => {
       message: 'expected a boolean value',
     })
   })
+
+  it('surfaces an actionable message for a 502 from the dev proxy, not its raw HTML error page', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('<html><body>Bad Gateway</body></html>', { status: 502 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiRequest('/auth/login', { auth: false })).rejects.toMatchObject({
+      status: 502,
+      message: expect.stringContaining('backend is running'),
+    })
+  })
 })

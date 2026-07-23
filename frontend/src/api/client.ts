@@ -94,7 +94,18 @@ async function refreshAccessToken(): Promise<boolean> {
   return refreshInFlight
 }
 
+// 502/503/504 mean the dev proxy (or a real reverse proxy in production)
+// never reached the backend at all — the backend process is down, not
+// listening on the expected port, or still starting up. The status code is
+// preserved unchanged; only the message is more actionable than the proxy's
+// own (HTML, non-JSON) error page would otherwise produce below.
+const GATEWAY_ERROR_MESSAGE = 'Could not reach the server. Please make sure the backend is running, then try again.'
+
 async function toApiError(response: Response): Promise<ApiError> {
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    return new ApiError(response.status, GATEWAY_ERROR_MESSAGE)
+  }
+
   let message = `Request failed with status ${response.status}.`
   try {
     const body: unknown = await response.json()
